@@ -1,0 +1,24 @@
+{
+  "name": "storysparks",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace web",
+    "dev:web": "npm run dev --workspace web",
+    "dev:api": "npm run dev --workspace api",
+    "dev:marketing": "npm run dev --workspace marketing",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "docker:stop": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.prod.yml down",
+    "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "docker:migrate": "docker exec storysparks-web npx prisma migrate dev --name init",
+    "docker:reset": "docker-compose -f docker-compose.dev.yml down -v",
+    "setup": "./docker-setup.sh"
+  }
+}

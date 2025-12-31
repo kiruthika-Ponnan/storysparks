@@ -1,0 +1,128 @@
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: storysparks-postgres
+    environment:
+      POSTGRES_DB: storysparks
+      POSTGRES_USER: storysparks
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storysparks -d storysparks"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for job queue
+  redis:
+    image: redis:7-alpine
+    container_name: storysparks-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Web Application (Next.js) - Development with hot reload
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    container_name: storysparks-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://storysparks:password@postgres:5432/storysparks
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+      - WATCHPACK_POLLING=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+  # API Service (Express) - Development with hot reload
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: storysparks-api
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://storysparks:password@postgres:5432/storysparks
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+      - LOG_LEVEL=debug
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+  # Marketing Site (Vue) - Development with hot reload
+  marketing:
+    build:
+      context: .
+      dockerfile: apps/marketing/Dockerfile.dev
+    container_name: storysparks-marketing
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/marketing/node_modules
+    stdin_open: true
+    tty: true
+
+  # Prisma Studio (Database GUI)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: packages/prisma/Dockerfile.dev
+    container_name: storysparks-prisma-studio
+    ports:
+      - "5555:5555"
+    environment:
+      - DATABASE_URL=postgresql://storysparks:password@postgres:5432/storysparks
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/prisma/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npx prisma studio --hostname 0.0.0.0
+
+volumes:
+  postgres_data:
+  redis_data:

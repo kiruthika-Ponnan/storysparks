@@ -1,0 +1,23 @@
+# Development Dockerfile for Prisma Studio
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+COPY packages/prisma/package*.json ./packages/prisma/
+
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client
+RUN cd packages/prisma && npx prisma generate
+
+# Expose port
+EXPOSE 5555
+
+# Start Prisma Studio
+WORKDIR /app/packages/prisma
+CMD ["npx", "prisma", "studio", "--hostname", "0.0.0.0"]

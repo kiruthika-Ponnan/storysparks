@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+apps/*/node_modules/
+packages/*/node_modules/
+
+# Builds
+.next/
+dist/
+coverage/
+apps/api/dist/
+
+# Env files
+.env*
+!.env.example
+
+# Misc
+.DS_Store
+npm-debug.log*
